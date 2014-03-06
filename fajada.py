@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 """
+I'm not entirely sure what Fajada will be yet. Is it an extended framework which
+I am building to help interface with microcontrollers? Is it just a one-off
+interface tool for a specific Arduino project? Is it just me tooling around with
+Chaco until I learn enough to start *something real*?
 
+What it *is*, for the moment, is an experimental interface to an Arduino-based
+electronics project involving several sensors and control systems. We'll see
+where things go.
+
+SavinaRoja
 """
 
 #Standard Library modules
@@ -25,52 +34,52 @@ class Viewer(HasTraits):
 
     data = Array
 
+    plot = Instance(Plot)
+
     plot_type = Enum("line", "scatter")
 
-    #serial_port = String('/dev/ttyACM0')
-    #serial_baud = Int(115200)
-    #latest_string = String('ham')
-    #h_container =
+    num_ticks = 0
 
-    traits_view = View(
-                #Item('serial_port', label='Serial Port:'),
-                #Item('serial_baud', label='Serial Baud:'),
-                #Item('latest_string', label='Latest String:'),
-                ChacoPlotItem("index", "data",
-                              type_trait="plot_type",
-                              resizable=True,
-                              x_label="Time",
-                              y_label="Signal",
-                              color="blue",
-                              bgcolor="white",
-                              border_visible=True,
-                              border_width=1,
-                              padding_bg_color="lightgray",
-                              width=200,
-                              height=200,
-                              marker_size=2,
-                              show_label=True),
-                width=500, height=500, resizable=True)
+    traits_view = View(Item("plot", editor=ComponentEditor(), show_label=False),
+        width=500, height=500, resizable=True, title="Application Scatter Plot")
+        #ChacoPlotItem("index", "data",
+                                     #type_trait="plot_type",
+                                     #resizable=True,
+                                     #x_label="Time",
+                                     #y_label="Signal",
+                                     #color="blue",
+                                     #bgcolor="white",
+                                     #border_visible=True,
+                                     #border_width=1,
+                                     #padding_bg_color="lightgray",
+                                     #width=400,
+                                     #height=200,
+                                     #marker_size=2,
+                                     #show_label=True),
+                       #width=500, height=500, resizable=True)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, max_points=200, *args, **kwargs):
         super(Viewer, self).__init__(*args, **kwargs)
+        self.max_points = max_points
 
-    def _serial_port_changed(self):
-        print(self.serial_port)
+        self.plotdata = ArrayPlotData(x=self.index)
+        self.plotdata.set_data('y', self.data)
+        self.plot = Plot(self.plotdata)
+        self.plot.plot(('x', 'y'), type='line', color='blue')
 
-    def _serial_baud_changed(self):
-        print(self.serial_baud)
-
-    def _latest_string_changed(self):
-        print(self.latest_string)
+    def _data_changed(self):
+        self.plotdata.set_data('y', self.data)
 
 
 class Fajada(HasTraits):
     temp = Instance(Viewer, ())
-    roll = Instance(Viewer, ())
-    thermobaro = HPlotContainer()
-    view = View(Item('thermobaro', editor=ComponentEditor(), show_label=False),
-                #Item('temp', style='custom', show_label=False),
+    #roll = Instance(Viewer, ())
+    #heading = Instance(Viewer, ())
+    #pitch = Instance(Viewer, ())
+    view = View(
+                Item('temp', style='custom', show_label=False),
+                #Item('heading', style='custom', show_label=False),
+                #Item('pitch', style='custom', show_label=False),
                 #Item('roll', style='custom', show_label=False),
                 resizable=True, title='Fajada')
     serial_threads = []
@@ -78,8 +87,7 @@ class Fajada(HasTraits):
     def __init__(self, ):
         super(Fajada, self).__init__()
         self.serial_threads.append(SerialThread('/dev/ttyACM0', 115200,
-                                                temp=self.temp,
-                                                roll=self.roll))
+                                                plots={'Temp': self.temp}))
         self.start_threads()
 
     def start_threads(self):
