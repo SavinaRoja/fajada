@@ -21,7 +21,6 @@ from acquisition import SerialThread
 
 #Chaco modules
 from chaco.api import Plot, ArrayPlotData, HPlotContainer
-from chaco.chaco_plot_editor import ChacoPlotItem
 
 #Other Enthought modules
 from traits.api import HasTraits, Instance, String, Int, Enum, Float, Array
@@ -62,13 +61,14 @@ class Viewer(HasTraits):
         super(Viewer, self).__init__(*args, **kwargs)
         self.max_points = max_points
 
-        self.plotdata = ArrayPlotData(x=self.index)
+        self.plotdata = ArrayPlotData(index=self.index)
         self.plotdata.set_data('y', self.data)
         self.plot = Plot(self.plotdata)
-        self.plot.plot(('x', 'y'), type='line', color='blue')
+        self.plot.plot(('index', 'y'), type='line', color='blue')
 
     def _data_changed(self):
         self.plotdata.set_data('y', self.data)
+        self.plotdata.set_data('index', self.index)
 
 
 class Fajada(HasTraits):
