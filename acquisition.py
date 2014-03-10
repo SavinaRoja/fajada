@@ -4,7 +4,9 @@ Defines special methods for data acquisition.
 """
 
 #Standard Library modules
+from collections import deque
 import threading
+import time
 
 #Non-Standard Library modules
 import numpy
@@ -19,7 +21,11 @@ class Acquisition(threading.Thread):
 
     def run(self):
         while not self.abort:
-            self._run()
+            try:
+                self._run()
+            except Exception as e:
+                print(e)
+                raise e
 
     def _run(self):
         """
@@ -29,12 +35,11 @@ class Acquisition(threading.Thread):
         pass
 
     def update_data(self, plot, value, adv_time=False):
-        cur_data = plot.data
-        max_points = plot.max_points
+        cur_data = deque(plot.data, maxlen=plot.max_points)
         num_ticks = plot.num_ticks
 
-        new_data = numpy.hstack((cur_data[-max_points + 1:],
-                                 [value]))
+        cur_data.append(value)
+        new_data = numpy.array(cur_data)
         new_index = numpy.arange(num_ticks - len(new_data) + 1,
                                  num_ticks + 0.01)
 
@@ -80,22 +85,43 @@ class SerialThread(Acquisition):
         #self.ser.readline()
 
     def _run(self):
-        try:
-            line = self.ser.readline().rstrip()
-            fields = line.split(';')
-            for field in fields:
-                name, value = field.split(':')
-                if name not in self.plots:
-                    continue
-                self.update_data(self.plots[name], float(value))
-        except Exception as e:
-            print(e)
+        line = self.ser.readline().rstrip()
+        fields = line.split(';')
+        for field in fields:
+            name, value = field.split(':')
+            if name not in self.plots:
+                continue
+            self.update_data(self.plots[name], float(value))
 
 
 class FunctionThread(Acquisition):
     """
-    Useful for simulating data acquisition.
+    A FunctionThread serves as a way to generate data input/acquisition using
+    a general function. It will update to its plot.
+
+    Parameters:
+      plot:
+          The chaco object for the plot
+      func:
+          Callable function, if no function is passed it will default to
+          numpy.random.normal
+      f_args:
+          A tuple of arguments for the function
+      f_kwargs:
+          A dictionary of keyword arguments for the function.
     """
 
-    def __init__(self):
+    def __init__(self, plot, func=None, f_args=(), f_kwargs={}):
         super(FunctionThread, self).__init__()
+        self.plot = plot
+        self.f_args = f_args
+        self.f_kwargs = f_kwargs
+        if func is None:
+            self.func = numpy.random.normal
+        else:
+            self.func = func
+
+    def _run(self):
+        #time.sleep(0.1)
+        new_val = self.func(*self.f_args, **self.f_kwargs)
+        self.update_data(self.plot, new_val)

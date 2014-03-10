@@ -13,7 +13,7 @@ SavinaRoja
 """
 
 #Standard Library modules
-from acquisition import SerialThread
+from acquisition import SerialThread, FunctionThread
 
 #Non-Standard Library modules
 #import numpy
@@ -37,10 +37,11 @@ class Viewer(HasTraits):
 
     plot_type = Enum("line", "scatter")
 
+    #num_ticks = Int(0)
     num_ticks = 0
 
     traits_view = View(Item("plot", editor=ComponentEditor(), show_label=False),
-        width=500, height=500, resizable=True, title="Application Scatter Plot")
+        width=600, height=300, resizable=True,)
         #ChacoPlotItem("index", "data",
                                      #type_trait="plot_type",
                                      #resizable=True,
@@ -59,6 +60,7 @@ class Viewer(HasTraits):
 
     def __init__(self, max_points=200, *args, **kwargs):
         super(Viewer, self).__init__(*args, **kwargs)
+        #self.max_points = Int(max_points)
         self.max_points = max_points
 
         self.plotdata = ArrayPlotData(index=self.index)
@@ -82,20 +84,22 @@ class Fajada(HasTraits):
                 #Item('pitch', style='custom', show_label=False),
                 #Item('roll', style='custom', show_label=False),
                 resizable=True, title='Fajada')
-    serial_threads = []
+    threads = []
 
     def __init__(self, ):
         super(Fajada, self).__init__()
         self.serial_threads.append(SerialThread('/dev/ttyACM0', 115200,
                                                 plots={'Temp': self.temp}))
+        #self.threads.append(FunctionThread(plot=self.temp,
+                                           #f_args=(100, 10)))
         self.start_threads()
 
     def start_threads(self):
-        for thread in self.serial_threads:
+        for thread in self.threads:
             thread.start()
 
     def stop_threads(self):
-        for thread in self.serial_threads:
+        for thread in self.threads:
             thread.abort = True
 
 if __name__ == '__main__':
