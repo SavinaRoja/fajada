@@ -122,6 +122,7 @@ class FunctionThread(Acquisition):
             self.func = func
 
     def _run(self):
-        #time.sleep(0.1)
+        time.sleep(0.1)
         new_val = self.func(*self.f_args, **self.f_kwargs)
-        self.update_data(self.plot, new_val)
+        self.plot.update(new_val)
+        #self.update_data(self.plot, new_val)
